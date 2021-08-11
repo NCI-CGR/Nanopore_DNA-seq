@@ -1,0 +1,55 @@
+# Path to raw data
+raw: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/raw/SNU902/"
+# Output directory, default if no input: "output" in working directory
+out: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/output/SNU902/"
+# Reference fasta file
+reference: '/data/CGR_integration/MikeDean_ModifiedBaseCalling/reference/hg38/genome.fa'
+# Path to PEPPER-Margin-DeepVariant singularity
+pepper: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/software/pepper"
+# Singularity bind mounting
+bind: " export SINGULARITY_BINDPATH='/data/daij,/fdb,/scratch,/lscratch,/data/CGR_integration/MikeDean_ModifiedBaseCalling/' "
+
+# If map to HPV genome as well
+hpv: "yes"
+hpv_ref: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/reference/hpv/HPVRef_13Types_no-pad.fasta"
+# Path to snpeff_hpv directory
+snpeff: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/reference/hpv/snpeff-5.0-1/snpEff.jar"
+snpeff_hpv: "HPVRef_13Types_no-pad"
+snpeff_config: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/reference/hpv/snpeff-5.0-1/snpEff_hpv.config"
+
+# For modified base calling
+  # Outputs
+outputs: "basecalls mappings mod_mappings mods"
+  # Mod-map-base-conv
+base_conv: "C T"
+  # Mod-motif
+motif: "Z CG 0"
+  # Mod-binary-threshold. May need to set 0 for 5hmC data
+thresh: 0.75
+  # guppy-config
+config: "res_dna_r941_min_modbases_5mC_CpG_v001.cfg"
+
+# For SV calling
+ # Minimum SV length
+min_sv_length: 30
+ # Maximum SV length
+max_sv_length: 100000
+ # Min read length. Shorter reads will be discarded
+min_read_length: 1000
+ # Min mapping quality. Reads will lower mapping quality will be discarded
+min_read_mapping_quality: 20
+ # Minimum read support required to call a SV (auto for auto-detect)
+min_read_support: "auto"
+ # Run snpsift or not
+snpsift: "no"
+ # SnpSift filter params if snpsift: "yes"
+snpsift_filter: "(QUAL > 30)"
+ # (optional) BED file containing targeted regions. SVs will only be called in
+ # regions contained in the BED file
+#target_bed : ""
+
+# For SNV calling
+ # Run snpsift or not
+snpsift2: "yes"
+ # SnpSift filter params if snpsift: "yes"
+snpsift_filter2: "(QUAL > 30) & (GEN[0].DP >=8) & ((GEN[0].AD[0]+GEN[0].AD[1]) >=4)"

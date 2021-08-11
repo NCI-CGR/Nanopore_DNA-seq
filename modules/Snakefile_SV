@@ -1,0 +1,172 @@
+# Input reference FASTA
+FA_REF = config["reference"]
+
+# Reference index name
+FA_REF_INDEX = FA_REF + ".gli"
+
+# Parameter: target_bed
+target_bed = ""
+if config.get("target_bed"):
+    target = config["target_bed"]
+    if os.path.exists(target):
+        target_bed = target
+        print("Using {} as target file".format(target_bed))
+    else:
+        print("Target BED {} not found. Continuing without target".format(target))
+
+rule index_lra:
+    input:
+          REF = FA_REF
+    output:
+          INDEX = FA_REF_INDEX
+    conda: "env.yml"
+    threads: 4
+    shell:
+          """
+          lra index -ONT {input} 2>log/index_lra.err
+          """
+
+rule map_lra:
+    input:
+          file = rules.basic.output,
+          REF = FA_REF,
+          INDEX = FA_REF_INDEX
+    output:
+          BAM = out + "sv/{sample}/alignment/{sample}_lra.bam",
+          BAI = out + "sv/{sample}/alignment/{sample}_lra.bam.bai"
+    conda: "env.yml"
+    threads: 16
+    benchmark: out + "sv/{sample}/benchmarks/map_lra_{sample}.time"
+    shell:
+          """
+          catfishq -r {out}mbc/basic/{wildcards.sample}/ | seqtk seq -A - | lra align -ONT -t 16 {input.REF} - -p s | samtools addreplacerg -r \"@RG\tID:{wildcards.sample}\tSM:{wildcards.sample}\" - | samtools sort -@ 16 -T {wildcards.sample} -O BAM -o {output.BAM} - && samtools index -@ 16 {output.BAM} 2>log/{wildcards.sample}_lra_map.err
+          """
+
+rule call_cutesv:
+    input:
+          BAM = out + "sv/{sample}/alignment/{sample}_lra.bam",
+          REF = FA_REF
+    output:
+          VCF = out + "sv/{sample}/sv_calls/{sample}_cutesv_tmp.vcf"
+    params:
+          min_size = config.get("min_sv_length", 30),
+          max_size = config.get("max_sv_length", 100000),
+          min_read_support = 2,
+          min_read_length = config.get("min_read_length", 1000),
+          min_mq = config.get("min_read_mapping_quality", 20),
+    conda: "env.yml"
+    threads: 16
+    benchmark: out + "sv/{sample}/benchmarks/call_cutesv_{sample}.time"
+    shell:
+          """
+          cuteSV -t 16 \
+                 --min_size {params.min_size} \
+                 --max_size  {params.max_size} \
+                 -S {wildcards.sample} \
+                 --retain_work_dir \
+                 --report_readid \
+                 --min_support {params.min_read_support} \
+                 --genotype {input.BAM} {input.REF} {output.VCF} \
+                 {out}sv/{wildcards.sample}/sv_calls/ 2>log/{wildcards.sample}_sv_call.err
+          """
+
+rule calc_depth:
+    input:
+          BAM = rules.map_lra.output.BAM
+    output:
+          DIR = directory(out + "sv/{sample}/{sample}/depth")
+    params:
+          BED = config.get("target", "1000000")
+    conda: "env.yml"
+    threads: 8
+    shell:
+          """
+          mkdir -p {output.DIR}
+          mosdepth -x -t 16 -n -b {params.BED} {output.DIR}/{wildcards.sample} {input.BAM} 2>log/{wildcards.sample}_depth.err
+          """
+
+rule filter_vcf:
+    input:
+          MOS = rules.calc_depth.output.DIR,
+          VCF = rules.call_cutesv.output.VCF
+    output:
+          VCF = out + "sv/{sample}/sv_calls/{sample}_cutesv_filtered_tmp.vcf"
+    params:
+          min_sv_length = config.get("min_sv_length", 30),
+          max_sv_length = config.get("max_sv_length", 100000),
+          target_bed = config.get("target_bed", None),
+          sv_types = config.get("sv_type", "DEL INS INV DUP TRA")
+    conda: "env.yml"
+    threads: 4
+    wrapper:
+          f"file:wrappers/filter"
+
+rule sort_vcf:
+    input:
+          VCF = rules.filter_vcf.output.VCF
+    output:
+          VCF = out + "sv/{sample}/sv_calls/{sample}_cutesv_filtered.vcf"
+    conda: "env.yml"
+    threads: 4
+    shell:
+          """
+          vcfsort {input.VCF} > {output.VCF} 2>log/{wildcards.sample}_sort_vcf.err
+          """
+
+rule index_vcf:
+    input:
+          VCF = rules.sort_vcf.output.VCF
+    output:
+          VCF = out + "sv/{sample}/sv_calls/{sample}_cutesv_filtered.vcf.gz"
+    conda: "env.yml"
+    threads: 4
+    shell:
+          """
+          cat {input.VCF} | bgziptabix {output.VCF} 2>log/{wildcards.sample}_index_vcf.err
+          """
+
+rule nanoplot_qc:
+    input:
+          BAM = rules.map_lra.output.BAM
+    output:
+          DIR = directory(out + "sv/{sample}/qc")
+    conda: "env.yml"
+    threads: 16
+    shell:
+          """
+          NanoPlot -t 16 \
+                   --bam {input.BAM} \
+                   --raw -o {output.DIR} \
+                   -p {wildcards.sample}_ \
+                   --N50 \
+                   --title {wildcards.sample} \
+                   --downsample 100000 2>log/{wildcards.sample}_qc.err
+          """
+
+rule snpeff:
+    input:
+          VCF = rules.sort_vcf.output.VCF
+    output:
+          VCF = out + "sv/{sample}/sv_calls/{sample}_cutesv_filtered_ann.vcf"
+    conda: "env.yml"
+    threads: 2
+    shell:
+          """
+          cd {out}sv/{wildcards.sample}/sv_calls/ 
+          java -Xmx16g -jar $SNPEFF_JAR -v hg38 {input.VCF} > {output.VCF} 2>{run}log/{wildcards.sample}_snpeff.err
+          """
+
+rule snpsift:
+     input:
+           VCF = rules.snpeff.output.VCF
+     output:
+           VCF = out + "sv/{sample}/sv_calls/{sample}_cutesv_filtered_ann_Qfiltered.vcf"
+     params:
+           filter = config.get("snpsift_filter", "(QUAL > 30)")
+     conda: "env.yml"
+     threads: 2
+     run:
+           if config["snpsift"] == "yes":
+              shell("""cat {input.VCF} | java -jar $SNPSIFT_JAR filter "{params.filter}" > {output.VCF} 2>log/{wildcards.sample}_snpsift.err""")
+           else:
+                shell("""touch {output.VCF}""")

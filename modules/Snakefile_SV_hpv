@@ -1,0 +1,160 @@
+# Input reference FASTA
+FA_REF = config["hpv_ref"]
+
+# Reference index name
+FA_REF_INDEX = FA_REF + ".gli"
+
+# snpeff_hpv
+snpeff_config = config["snpeff_config"]
+snpeff_hpv = config["snpeff_hpv"]
+
+# Parameter: target_bed
+target_bed = ""
+if config.get("target_bed"):
+    target = config["target_bed"]
+    if os.path.exists(target):
+        target_bed = target
+        print("Using {} as target file".format(target_bed))
+    else:
+        print("Target BED {} not found. Continuing without target".format(target))
+
+rule index_lra_hpv:
+    input:
+          REF = FA_REF
+    output:
+          INDEX = FA_REF_INDEX
+    conda: "env.yml"
+    threads: 4
+    shell:
+          """
+          lra index -ONT {input} 2>log/index_lra_hpv.err
+          """
+
+rule map_lra_hpv:
+    input:
+          file = rules.basic_hpv.output,
+          REF = FA_REF,
+          INDEX = FA_REF_INDEX
+    output:
+          BAM = out + "sv_hpv/{sample}/alignment/{sample}_lra.bam",
+          BAI = out + "sv_hpv/{sample}/alignment/{sample}_lra.bam.bai"
+    conda: "env.yml"
+    threads: 16
+    benchmark: out + "sv_hpv/{sample}/benchmarks/map_lra_{sample}.time"
+    shell:
+          """
+          catfishq -r {out}mbc_hpv/basic/{wildcards.sample}/ | seqtk seq -A - | lra align -ONT -t 16 {input.REF} - -p s | samtools addreplacerg -r \"@RG\tID:{wildcards.sample}\tSM:{wildcards.sample}\" - | samtools sort -@ 16 -T {wildcards.sample} -O BAM -o {output.BAM} - && samtools index -@ 16 {output.BAM} 2>log/{wildcards.sample}_lra_map_hpv.err
+          """
+
+rule call_cutesv_hpv:
+    input:
+          BAM = out + "sv_hpv/{sample}/alignment/{sample}_lra.bam",
+          REF = FA_REF
+    output:
+          VCF = out + "sv_hpv/{sample}/sv_calls/{sample}_cutesv_tmp.vcf"
+    params:
+          min_size = config.get("min_sv_length", 30),
+          max_size = config.get("max_sv_length", 100000),
+          min_read_support = 2,
+          min_read_length = config.get("min_read_length", 1000),
+          min_mq = config.get("min_read_mapping_quality", 20),
+    conda: "env.yml"
+    threads: 16
+    benchmark: out + "sv_hpv/{sample}/benchmarks/call_cutesv_{sample}.time"
+    shell:
+          """
+          cuteSV -t 16 \
+                 --min_size {params.min_size} \
+                 --max_size  {params.max_size} \
+                 -S {wildcards.sample} \
+                 --retain_work_dir \
+                 --report_readid \
+                 --min_support {params.min_read_support} \
+                 --genotype {input.BAM} {input.REF} {output.VCF} \
+                 {out}sv_hpv/{wildcards.sample}/sv_calls/ 2>log/{wildcards.sample}_sv_call_hpv.err
+          """
+
+rule calc_depth_hpv:
+    input:
+          BAM = rules.map_lra_hpv.output.BAM
+    output:
+          DIR = directory(out + "sv_hpv/{sample}/{sample}/depth")
+    params:
+          BED = config.get("target", "1000000")
+    conda: "env.yml"
+    threads: 8
+    shell:
+          """
+          mkdir -p {output.DIR}
+          mosdepth -x -t 16 -n -b {params.BED} {output.DIR}/{wildcards.sample} {input.BAM} 2>log/{wildcards.sample}_depth_hpv.err
+          """
+
+rule filter_vcf_hpv:
+    input:
+          MOS = rules.calc_depth_hpv.output.DIR,
+          VCF = rules.call_cutesv_hpv.output.VCF
+    output:
+          VCF = out + "sv_hpv/{sample}/sv_calls/{sample}_cutesv_filtered_tmp.vcf"
+    params:
+          min_sv_length = config.get("min_sv_length", 30),
+          max_sv_length = config.get("max_sv_length", 100000),
+          target_bed = config.get("target_bed", None),
+          sv_types = config.get("sv_type", "DEL INS INV DUP TRA")
+    conda: "env.yml"
+    threads: 4
+    wrapper:
+          f"file:wrappers/filter"
+
+rule sort_vcf_hpv:
+    input:
+          VCF = rules.filter_vcf_hpv.output.VCF
+    output:
+          VCF = out + "sv_hpv/{sample}/sv_calls/{sample}_cutesv_filtered.vcf"
+    conda: "env.yml"
+    threads: 4
+    shell:
+          """
+          vcfsort {input.VCF} > {output.VCF} 2>log/{wildcards.sample}_sort_vcf_hpv.err
+          """
+
+rule index_vcf_hpv:
+    input:
+          VCF = rules.sort_vcf_hpv.output.VCF
+    output:
+          VCF = out + "sv_hpv/{sample}/sv_calls/{sample}_cutesv_filtered.vcf.gz"
+    conda: "env.yml"
+    threads: 4
+    shell:
+          """
+          cat {input.VCF} | bgziptabix {output.VCF} 2>log/{wildcards.sample}_index_vcf_hpv.err
+          """
+
+rule nanoplot_qc_hpv:
+    input:
+          BAM = rules.map_lra_hpv.output.BAM
+    output:
+          DIR = directory(out + "sv_hpv/{sample}/qc")
+    conda: "env.yml"
+    threads: 16
+    shell:
+          """
+          NanoPlot -t 16 \
+                   --bam {input.BAM} \
+                   --raw -o {output.DIR} \
+                   -p {wildcards.sample}_ \
+                   --N50 \
+                   --title {wildcards.sample} \
+                   --downsample 100000 2>log/{wildcards.sample}_qc_hpv.err
+          """
+rule snpeff_hpv:
+    input:
+          VCF = rules.sort_vcf_hpv.output.VCF
+    output:
+          VCF = out + "sv_hpv/{sample}/sv_calls/{sample}_cutesv_filtered_ann.vcf"
+    conda: "env.yml"
+    threads: 2
+    shell:
+          """
+          cd {out}sv_hpv/{wildcards.sample}/sv_calls/
+          java -Xmx16g -jar {snpeff} -c {snpeff_config} -v {snpeff_hpv} {input.VCF} > {output.VCF} 2>{run}log/{wildcards.sample}_snpeff_hpv.err
+          """

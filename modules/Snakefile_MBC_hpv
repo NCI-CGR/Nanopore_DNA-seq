@@ -1,0 +1,94 @@
+# Reference
+hpv_ref = config["hpv_ref"]
+
+rule basic_hpv:
+    input:
+          raw + "{sample}_fast5/",
+          {hpv_ref}
+    output:
+          out + "mbc_hpv/basic/{sample}/complete.txt"
+    params:
+          outputs = config.get("outputs","basecalls mappings mod_mappings mods"),
+          base_conv = config.get("base_conv","C T"),
+          thresh = config.get("thresh", 0.75)
+    threads: 16
+    shell:
+         """
+         megalodon {input[0]} \
+                   --guppy-server-path ${{MEGALODON_GUPPY_PATH}} \
+                   --outputs {params.outputs} \
+                   --output-directory {out}mbc_hpv/basic/{wildcards.sample} \
+                   --overwrite \
+                   --reference {input[1]} \
+                   --mod-map-emulate-bisulfite \
+                   --mod-map-base-conv {params.base_conv} \
+                   --mod-map-base-conv Z C \
+                   --mod-motif m CG 0 \
+                   --mod-binary-threshold {params.thresh} \
+                   --devices ${{CUDA_VISIBLE_DEVICES}} \
+                   --processes ${{SLURM_CPUS_PER_TASK}} 2>log/{wildcards.sample}_basic_hpv.err
+         touch {output}
+         """
+
+rule model_based_hpv:
+    input:
+          raw + "{sample}_fast5/",
+          {hpv_ref}
+    output:
+          out + "mbc_hpv/model_based/{sample}/complete.txt"
+    params:
+          config = config["config"],
+          outputs = config.get("outputs","basecalls mappings mod_mappings mods"),
+          base_conv = config.get("base_conv","C T"),
+          thresh = config.get("thresh", 0.75)
+    threads: 16
+    shell:
+          """
+          megalodon {input[0]} \
+                    --guppy-server-path ${{MEGALODON_GUPPY_PATH}} \
+                    --guppy-config {params.config} \
+                    --outputs {params.outputs} \
+                    --overwrite \
+                    --output-directory {out}mbc_hpv/model_based/{wildcards.sample} \
+                    --reference {input[1]} \
+                    --mod-map-emulate-bisulfite \
+                    --mod-map-base-conv {params.base_conv} \
+                    --mod-map-base-conv Z C \
+                    --mod-motif m CG 0 \
+                    --mod-binary-threshold {params.thresh} \
+                    --devices ${{CUDA_VISIBLE_DEVICES}} \
+                    --processes ${{SLURM_CPUS_PER_TASK}} 2>log/{wildcards.sample}_model_hpv.err
+          touch {output}
+          """
+
+rule index_basic_hpv:
+    input:
+          out + "mbc_hpv/basic/{sample}/complete.txt"
+    output:
+          out + "mbc_hpv/basic/{sample}/mappings_sorted.bam.bai",
+          out + "mbc_hpv/basic/{sample}/mod_mappings.5mC_sorted.bam.bai"
+    conda: "env.yml"
+    threads: 2
+    shell:
+          """
+          samtools sort {out}mbc_hpv/basic/{wildcards.sample}/mappings.bam > {out}mbc_hpv/basic/{wildcards.sample}/mappings_sorted.bam 2>log/{wildcards.sample}_basic_bam_sort1_hpv.err
+          samtools index {out}mbc_hpv/basic/{wildcards.sample}/mappings_sorted.bam 2>log/{wildcards.sample}_basic_bam_index1_hpv.err
+          samtools sort {out}mbc_hpv/basic/{wildcards.sample}/mod_mappings.5mC.bam > {out}mbc_hpv/basic/{wildcards.sample}/mod_mappings.5mC_sorted.bam 2>log/{wildcards.sample}_basic_bam_sort3_hpv.err
+          samtools index {out}mbc_hpv/basic/{wildcards.sample}/mod_mappings.5mC_sorted.bam 2>log/{wildcards.sample}_basic_bam_index3_hpv.err
+          """
+
+rule index_model_hpv:
+    input:
+          out + "mbc_hpv/model_based/{sample}/complete.txt"
+    output:
+          out + "mbc_hpv/model_based/{sample}/mappings_sorted.bam.bai",
+          out + "mbc_hpv/model_based/{sample}/mod_mappings.5mC_sorted.bam.bai"
+    conda: "env.yml"
+    threads: 2
+    shell:
+          """
+          samtools sort {out}mbc_hpv/model_based/{wildcards.sample}/mappings.bam > {out}mbc_hpv/model_based/{wildcards.sample}/mappings_sorted.bam 2>log/{wildcards.sample}_model_based_bam_sort1_hpv.err
+          samtools index {out}mbc_hpv/model_based/{wildcards.sample}/mappings_sorted.bam 2>log/{wildcards.sample}_model_based_bam_index1_hpv.err
+          samtools sort {out}mbc_hpv/model_based/{wildcards.sample}/mod_mappings.5mC.bam > {out}mbc_hpv/model_based/{wildcards.sample}/mod_mappings.5mC_sorted.bam 2>log/{wildcards.sample}_model_based_bam_sort3_hpv.err
+          samtools index {out}mbc_hpv/model_based/{wildcards.sample}/mod_mappings.5mC_sorted.bam 2>log/{wildcards.sample}_model_based_bam_index3_hpv.err
+          """

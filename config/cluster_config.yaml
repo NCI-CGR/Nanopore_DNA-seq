@@ -1,0 +1,101 @@
+__default__:
+    mem: 64g
+    partition: quick,norm
+    time: '4:00:00'
+    scratch: lscratch:10 
+
+basic:
+    mem: 120g
+    partition: gpu
+    time: '240:00:00'
+    scratch: lscratch:200,gpu:p100:2
+
+model_based:
+    mem: 120g
+    partition: gpu
+    time: '240:00:00'
+    scratch: lscratch:500,gpu:p100:2
+
+map_lra:
+    mem: 160g
+    partition: norm
+    time: '240:00:00'
+    scratch: lscratch:100
+
+call_cutesv:
+    mem: 160g
+    partition: norm
+    time: '240:00:00'
+    scratch: lscratch:10
+
+nanoplot_qc:
+    mem: 100g
+    partition: norm
+    time: '240:00:00'
+    scratch: lscratch:100
+
+basic_hpv:
+    mem: 120g
+    partition: gpu
+    time: '240:00:00'
+    scratch: lscratch:200,gpu:p100:2
+
+model_based_hpv:
+    mem: 120g
+    partition: gpu
+    time: '240:00:00'
+    scratch: lscratch:500,gpu:p100:2
+
+map_lra_hpv:
+    mem: 160g
+    partition: norm
+    time: '80:00:00'
+    scratch: lscratch:100
+
+call_cutesv_hpv:
+    mem: 160g
+    partition: norm
+    time: '80:00:00'
+    scratch: lscratch:10
+
+nanoplot_qc_hpv:
+    mem: 100g
+    partition: norm
+    time: '80:00:00'
+    scratch: lscratch:100
+
+minimap2:
+    mem: 160g
+    partition: norm
+    time: '240:00:00'
+    scratch: lscratch:100
+
+minimap2_hpv:
+    mem: 100g
+    partition: norm,quick
+    time: '4:00:00'
+    scratch: lscratch:100
+
+samtools:
+    mem: 100g
+    partition: norm,quick
+    time: '4:00:00'
+    scratch: lscratch:100
+
+samtools_hpv:
+    mem: 100g
+    partition: norm,quick
+    time: '4:00:00'
+    scratch: lscratch:100
+
+PMD:
+    mem: 160g
+    partition: norm
+    time: '240:00:00'
+    scratch: lscratch:100
+
+PMD_hpv:
+    mem: 160g
+    partition: norm
+    time: '240:00:00'
+    scratch: lscratch:100

@@ -1,21 +1,21 @@
 # Path to raw data
-raw: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/raw/SNU902/"
+raw: "{Path_to_directory_store_demultiplexed_fast5_files}/"
 # Output directory, default if no input: "output" in working directory
-out: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/output/SNU902/"
+out: "{Output_directory}/"
 # Reference fasta file
-reference: '/data/CGR_integration/MikeDean_ModifiedBaseCalling/reference/hg38/genome.fa'
-# Path to PEPPER-Margin-DeepVariant singularity
-pepper: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/software/pepper"
+reference: '{Path_to_primary_reference_genome_fasta_file}'
+# Path to PEPPER-Margin-DeepVariant singularity image
+pepper: "{Path}/pepper"
 # Singularity bind mounting
-bind: " export SINGULARITY_BINDPATH='/data/daij,/fdb,/scratch,/lscratch,/data/CGR_integration/MikeDean_ModifiedBaseCalling/' "
+bind: " export SINGULARITY_BINDPATH='{Bind_directory}' "
 
 # If map to HPV genome as well
 hpv: "yes"
-hpv_ref: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/reference/hpv/HPVRef_13Types_no-pad.fasta"
+hpv_ref: "{Path_to_secondary_reference_genome_fasta_file}"
 # Path to snpeff_hpv directory
-snpeff: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/reference/hpv/snpeff-5.0-1/snpEff.jar"
+snpeff: "{Path}/snpEff.jar"
 snpeff_hpv: "HPVRef_13Types_no-pad"
-snpeff_config: "/data/CGR_integration/MikeDean_ModifiedBaseCalling/reference/hpv/snpeff-5.0-1/snpEff_hpv.config"
+snpeff_config: "{Path}/snpEff_hpv.config"
 
 # For modified base calling
   # Outputs

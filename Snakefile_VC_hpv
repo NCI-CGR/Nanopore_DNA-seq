@@ -1,0 +1,71 @@
+# Reference
+ref = config["hpv_ref"]
+
+# snpeff_hpv
+snpeff_config = config["snpeff_config"]
+snpeff_hpv = config["snpeff_hpv"]
+
+rule minimap2_hpv:
+    input:
+          out + "mbc_hpv/basic/{sample}/complete.txt",
+          {ref}
+    output:
+          out + "vc_hpv/{sample}/bam/minimap.sam"
+    conda: "env.yml"
+    threads: 16
+    shell:
+          """
+          minimap2 -ax map-ont {input[1]} {out}mbc_hpv/basic/{wildcards.sample}/basecalls.fastq > {output} 2> log/{wildcards.sample}_minimap_hpv.err
+          """
+
+rule samtools_hpv:
+    input:
+          out + "vc_hpv/{sample}/bam/minimap.sam"
+    output:
+          out + "vc_hpv/{sample}/bam/minimap_sorted.bam"
+    conda: "env.yml"
+    threads: 16
+    shell:
+          """
+          samtools view -b {input} | samtools sort > {output[0]} 2>log/{wildcards.sample}_minimap_sort_hpv.err
+          samtools index {output} 2>log/{wildcards.sample}_minimap_index_hpv.err
+          """
+
+rule PMD_hpv:
+    input:
+          out + "vc_hpv/{sample}/bam/minimap_sorted.bam",
+          {ref}
+    output:
+          out + "vc_hpv/{sample}/complete.txt"
+    threads: 24
+    shell:
+         """
+         {bind}
+         singularity exec \
+         {pepper}/pepper_deepvariant_r0.4.sif \
+         run_pepper_margin_deepvariant call_variant \
+                   -b {input[0]} \
+                   -f {input[1]} \
+                   -p {wildcards.sample}_PEPPER_Margin_DeepVariant \
+                   -o {out}vc_hpv/{wildcards.sample} \
+                   -t 16 \
+                   --ont
+                   --phased_output 2>log/{wildcards.sample}_pmd_hpv.err
+         touch {output}
+         """
+
+rule snpeff2_hpv:
+    input:
+          out + "vc_hpv/{sample}/complete.txt"
+    output:
+          out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased_ann.vcf"
+    params:
+          vcf = out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased.vcf.gz"
+    conda: "env.yml"
+    threads: 6
+    shell:
+          """
+          cd {out}vc_hpv/{wildcards.sample}/
+
+          java -Xmx16g -jar {snpeff} -c {snpeff_config} -v {snpeff_hpv} {params.vcf} > {output} 2>{run}log/{wildcards.sample}_snpeff2_hpv.err
+          """

@@ -49,7 +49,8 @@ rule PMD_hpv:
                    -p {wildcards.sample}_PEPPER_Margin_DeepVariant \
                    -o {out}vc_hpv/{wildcards.sample} \
                    -t 16 \
-                   --ont 2>log/{wildcards.sample}_pmd_hpv.err
+                   --ont
+                   --phased_output 2>log/{wildcards.sample}_pmd_hpv.err
          touch {output}
          """
 
@@ -57,9 +58,9 @@ rule snpeff2_hpv:
     input:
           out + "vc_hpv/{sample}/complete.txt"
     output:
-          out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant_ann.vcf"
+          out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased_ann.vcf"
     params:
-          vcf = out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant.vcf.gz"
+          vcf = out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased.vcf.gz"
     conda: "env.yml"
     threads: 6
     shell:

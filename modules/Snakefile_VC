@@ -11,7 +11,7 @@ rule minimap2:
     threads: 16
     shell:
           """
-          minimap2 -ax map-ont {input[1]} {out}mbc/basic/{wildcards.sample}/basecalls.fastq > {output} 2> log/{wildcards.sample}_minimap.err 
+          minimap2 -ax map-ont {input[1]} {out}mbc/basic/{wildcards.sample}/basecalls.fastq > {output} 2> log/{wildcards.sample}_minimap.err
           """
 
 rule samtools:
@@ -24,15 +24,15 @@ rule samtools:
     shell:
           """
           samtools view -b {input} | samtools sort > {output[0]} 2>log/{wildcards.sample}_minimap_sort.err
-          samtools index {output} 2>log/{wildcards.sample}_minimap_index.err 
+          samtools index {output} 2>log/{wildcards.sample}_minimap_index.err
           """
-    
+
 rule PMD:
     input:
           out + "vc/{sample}/bam/minimap_sorted.bam",
           {ref}
     output:
-          out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant.vcf.gz",
+          out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased.vcf.gz",
           out + "vc/{sample}/complete.txt"
     params:
           outputs = config.get("outputs","basecalls mappings mod_mappings mods"),
@@ -50,15 +50,16 @@ rule PMD:
                    -p {wildcards.sample}_PEPPER_Margin_DeepVariant \
                    -o {out}vc/{wildcards.sample} \
                    -t 30 \
-                   --ont 2>log/{wildcards.sample}_pmd.err
+                   --ont
+                   --phased_output 2>log/{wildcards.sample}_pmd.err
          touch {output[1]}
          """
 
 rule snpeff2:
     input:
-          out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant.vcf.gz"
+          out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased.vcf.gz"
     output:
-          out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant_ann.vcf"
+          out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased_ann.vcf"
     conda: "env.yml"
     threads: 6
     shell:
@@ -69,9 +70,9 @@ rule snpeff2:
 
 rule snpsift2:
      input:
-           out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant_ann.vcf"
+           out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased_ann.vcf"
      output:
-           out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant_ann_Qfiltered.vcf"
+           out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant.phased_ann_Qfiltered.vcf"
      params:
            filter = config.get("snpsift_filter2", "(QUAL > 30)")
      conda: "env.yml"
@@ -84,9 +85,9 @@ rule snpsift2:
 
 rule snpeff3:
     input:
-          out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant_ann_Qfiltered.vcf"
+          out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant.phased_ann_Qfiltered.vcf"
     output:
-          out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant_ann_Qfiltered_ann.vcf"
+          out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant.phased_ann_Qfiltered_ann.vcf"
     conda: "env.yml"
     threads: 6
     shell:

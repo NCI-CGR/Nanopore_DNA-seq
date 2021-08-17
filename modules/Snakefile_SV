@@ -148,12 +148,11 @@ rule snpeff:
           VCF = rules.sort_vcf.output.VCF
     output:
           VCF = out + "sv/{sample}/sv_calls/{sample}_cutesv_filtered_ann.vcf"
-    conda: "env.yml"
     threads: 2
     shell:
           """
-          cd {out}sv/{wildcards.sample}/sv_calls/ 
-          java -Xmx16g -jar $SNPEFF_JAR -v hg38 {input.VCF} > {output.VCF} 2>{run}log/{wildcards.sample}_snpeff.err
+          cd {out}sv/{wildcards.sample}/sv_calls/
+          java -Xmx16g -jar {snpeff} -v hg38 {input.VCF} > {output.VCF} 2>{run}log/{wildcards.sample}_snpeff.err
           """
 
 rule snpsift:
@@ -163,10 +162,9 @@ rule snpsift:
            VCF = out + "sv/{sample}/sv_calls/{sample}_cutesv_filtered_ann_Qfiltered.vcf"
      params:
            filter = config.get("snpsift_filter", "(QUAL > 30)")
-     conda: "env.yml"
      threads: 2
      run:
            if config["snpsift"] == "yes":
-              shell("""cat {input.VCF} | java -jar $SNPSIFT_JAR filter "{params.filter}" > {output.VCF} 2>log/{wildcards.sample}_snpsift.err""")
+              shell("""cat {input.VCF} | java -jar {snpeff} filter "{params.filter}" > {output.VCF} 2>log/{wildcards.sample}_snpsift.err""")
            else:
                 shell("""touch {output.VCF}""")

@@ -25,7 +25,7 @@ snpeff = config["snpeff"]
 def parse_sampleID(fname):
     return fname.split(raw)[-1].split('_fast5')[0]
 
-dire = sorted(glob.glob(raw + '*'), key=parse_sampleID)
+dire = sorted(glob.glob(raw + '*_fast5'), key=parse_sampleID)
 
 d = {}
 for key, value in itertools.groupby(dire, parse_sampleID):
@@ -52,9 +52,9 @@ if config["hpv"]=="yes":
               expand(out + "sv_hpv/{sample}/sv_calls/{sample}_cutesv_filtered_ann.vcf",sample=samples),
               expand(out + "sv_hpv/{sample}/qc",sample=samples),
               expand(out + "vc/{sample}/complete.txt",sample=samples),
-              expand(out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant_ann_Qfiltered_ann.vcf",sample=samples),
+              expand(out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant.phased_ann_Qfiltered_ann.vcf",sample=samples),
               expand(out + "vc_hpv/{sample}/complete.txt",sample=samples),
-              expand(out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant_ann.vcf",sample=samples),
+              expand(out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased_ann.vcf",sample=samples),
 
 else:
     include: "modules/Snakefile_MBC"
@@ -67,4 +67,4 @@ else:
                expand(out + "sv/{sample}/sv_calls/{sample}_cutesv_filtered_ann_Qf    iltered.vcf",sample=samples),
                expand(out + "sv/{sample}/qc",sample=samples),
                expand(out + "vc/{sample}/complete.txt",sample=samples),
-               expand(out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant_ann_Qfiltered_ann.vcf",sample=samples)
+               expand(out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant.phased_ann_Qfiltered_ann.vcf",sample=samples)

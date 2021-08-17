@@ -60,12 +60,11 @@ rule snpeff2:
           out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased.vcf.gz"
     output:
           out + "vc/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased_ann.vcf"
-    conda: "env.yml"
     threads: 6
     shell:
           """
           cd {out}vc/{wildcards.sample}/
-          java -Xmx16g -jar $SNPEFF_JAR -v hg38 {input} > {output} 2>{run}log/{wildcards.sample}_snpeff2.err
+          java -Xmx16g -jar {snpeff} -v hg38 {input} > {output} 2>{run}log/{wildcards.sample}_snpeff2.err
           """
 
 rule snpsift2:
@@ -75,11 +74,10 @@ rule snpsift2:
            out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant.phased_ann_Qfiltered.vcf"
      params:
            filter = config.get("snpsift_filter2", "(QUAL > 30)")
-     conda: "env.yml"
      threads: 6
      run:
            if config["snpsift2"] == "yes":
-              shell("""cat {input} | java -jar $SNPSIFT_JAR filter "{params.filter}" > {output} 2>log/{wildcards.sample}_snpsift2.err""")
+              shell("""cat {input} | java -jar {snpeff} filter "{params.filter}" > {output} 2>log/{wildcards.sample}_snpsift2.err""")
            else:
                 shell("""touch {output}""")
 
@@ -88,10 +86,9 @@ rule snpeff3:
           out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant.phased_ann_Qfiltered.vcf"
     output:
           out + "vc/{sample}/filter/{sample}_PEPPER_Margin_DeepVariant.phased_ann_Qfiltered_ann.vcf"
-    conda: "env.yml"
     threads: 6
     shell:
           """
           cd {out}vc/{wildcards.sample}/filter/
-          java -Xmx16g -jar $SNPEFF_JAR -v hg38 {input} > {output} 2>{run}log/{wildcards.sample}_snpeff3.err
+          java -Xmx16g -jar {snpeff} -v hg38 {input} > {output} 2>{run}log/{wildcards.sample}_snpeff3.err
           """

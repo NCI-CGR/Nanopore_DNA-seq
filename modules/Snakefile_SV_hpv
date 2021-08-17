@@ -135,7 +135,6 @@ rule nanoplot_qc_hpv:
     output:
           DIR = directory(out + "sv_hpv/{sample}/qc")
     conda: "env.yml"
-    threads: 16
     shell:
           """
           NanoPlot -t 16 \
@@ -151,7 +150,6 @@ rule snpeff_hpv:
           VCF = rules.sort_vcf_hpv.output.VCF
     output:
           VCF = out + "sv_hpv/{sample}/sv_calls/{sample}_cutesv_filtered_ann.vcf"
-    conda: "env.yml"
     threads: 2
     shell:
           """

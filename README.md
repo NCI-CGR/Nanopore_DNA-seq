@@ -14,6 +14,7 @@ Major steps in this workflow include:
 * [Megalodon](https://github.com/nanoporetech/megalodon)
 * [Singularity](https://sylabs.io/singularity/)
 * [PEPPER-Margin-DeepVariant](https://github.com/kishwarshafin/pepper)
+* [SNPEFF](https://pcingola.github.io/SnpEff/download/)
 
 ## User's guide
 ### I. Input requirements
@@ -28,6 +29,7 @@ Basic parameters:
 * reference: Path to primary reference genome fasta file
 * pepper: Path to the directory where PEPPER-Margin-DeepVariant singularity is downloaded
 * bind: Singularity bind mounting
+* snpeff: Path to SNPEFF installed location
 
 Parameters for modified base calling:
 * outputs: Desired outputs
@@ -57,7 +59,6 @@ Optional parameters to run the full analysis on HPV genomes:
 
 * hpv: Run the analysis on HPV genomes or not
 * hpv_ref: Path to HPV reference genome fasta file
-* snpeff: Path to the file snpEff.jar
 * snpeff_hpv: Name of the pre-build HPV snpEff annotation
 * snpeff_config: Path to the HPV snpEff config file
 

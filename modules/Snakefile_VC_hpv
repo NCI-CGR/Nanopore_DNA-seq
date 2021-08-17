@@ -61,7 +61,6 @@ rule snpeff2_hpv:
           out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased_ann.vcf"
     params:
           vcf = out + "vc_hpv/{sample}/{sample}_PEPPER_Margin_DeepVariant.phased.vcf.gz"
-    conda: "env.yml"
     threads: 6
     shell:
           """

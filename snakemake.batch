@@ -1,7 +1,7 @@
 #!/bin/bash
 mkdir -p log
 
-module load snakemake/5.24.1 megalodon singularity || exit 1
+module load snakemake/5.24.1 megalodon singularity snpEff || exit 1
 
 snakemake --cores=1 --unlock
 

@@ -145,6 +145,7 @@ rule nanoplot_qc_hpv:
                    --title {wildcards.sample} \
                    --downsample 100000 2>log/{wildcards.sample}_qc_hpv.err
           """
+
 rule snpeff_hpv:
     input:
           VCF = rules.sort_vcf_hpv.output.VCF

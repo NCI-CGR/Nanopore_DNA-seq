@@ -49,7 +49,7 @@ rule PMD_hpv:
                    -p {wildcards.sample}_PEPPER_Margin_DeepVariant \
                    -o {out}vc_hpv/{wildcards.sample} \
                    -t 16 \
-                   --ont
+                   --ont \
                    --phased_output 2>log/{wildcards.sample}_pmd_hpv.err
          touch {output}
          """
